@@ -14,7 +14,7 @@ Plug('https://github.com/hrsh7th/nvim-cmp')
 Plug('https://github.com/hrsh7th/vim-vsnip')
 Plug('https://github.com/L3MON4D3/LuaSnip', {['tag'] = 'v2.*', ['do'] = 'make install_jsregexp'})
 -- C#
-Plug('https://github.com/OmniSharp/omnisharp-vim')
+Plug('https://github.com/jmederosalvarado/roslyn.nvim')
 -- Programmer Utilities
 Plug('https://github.com/mfussenegger/nvim-dap')
 Plug('https://github.com/neovim/nvim-lspconfig')
@@ -46,12 +46,12 @@ Plug('https://github.com/tpope/vim-surround')
 Plug('https://github.com/tpope/vim-speeddating')
 Plug('https://github.com/mattn/emmet-vim')
 Plug('https://github.com/nickspoons/vim-sharpenup')
-Plug('https://github.com/dense-analysis/ale')
+-- Plug('https://github.com/dense-analysis/ale')
 Plug('https://github.com/junegunn/fzf')
 Plug('https://github.com/junegunn/fzf.vim')
 Plug('https://github.com/prabirshrestha/asyncomplete.vim')
 Plug('https://github.com/itchyny/lightline.vim')
-Plug('https://github.com/maximbaz/lightline-ale')
+-- Plug('https://github.com/maximbaz/lightline-ale')
 Plug('https://github.com/nvim-tree/nvim-web-devicons')
 
 vim.call('plug#end')
@@ -182,8 +182,6 @@ vim.cmd('colorscheme tokyonight-storm')
 
 require("mason").setup()
 require("mason-lspconfig").setup()
-require("lspconfig").lua_ls.setup {}
-require("lspconfig").rust_analyzer.setup {}
 require('nvim-treesitter.install').prefer_git = false
 -- Treesitter Plugin Setup 
 require('nvim-treesitter.configs').setup {
@@ -200,14 +198,12 @@ require('nvim-treesitter.configs').setup {
     max_file_lines = nil,
   }
 }
-
 require('nvim-ts-autotag').setup()
 require('nvim-autopairs').setup()
 require('ibl').setup()
 require('leap').create_default_mappings()
 require('Comment').setup()
 require('rust-tools').setup()
-
 require('telescope').setup {
   extensions = {
     file_browser = {
@@ -215,6 +211,63 @@ require('telescope').setup {
     }
   }
 }
+
+-- lspconfig
+-- Setup language servers.
+local lspconfig = require('lspconfig')
+lspconfig.lua_ls.setup {}
+lspconfig.tsserver.setup {}
+lspconfig.rust_analyzer.setup {
+  -- Server-specific settings. See `:help lspconfig-setup`
+  settings = {
+    ['rust-analyzer'] = {},
+  },
+}
+
+require("roslyn").setup({
+    dotnet_cmd = "dotnet",
+    roslyn_version = "4.8.0-3.23475.7",
+    on_attach = lspconfig.util.default_on_attach,
+    capabilities = lspconfig.util.default_capabilities,
+})
+
+-- Global mappings.
+-- See `:help vim.diagnostic.*` for documentation on any of the below functions
+vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
+vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
+vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
+vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
+
+-- Use LspAttach autocommand to only map the following keys
+-- after the language server attaches to the current buffer
+vim.api.nvim_create_autocmd('LspAttach', {
+  group = vim.api.nvim_create_augroup('UserLspConfig', {}),
+  callback = function(ev)
+    -- Enable completion triggered by <c-x><c-o>
+    vim.bo[ev.buf].omnifunc = 'v:lua.vim.lsp.omnifunc'
+
+    -- Buffer local mappings.
+    -- See `:help vim.lsp.*` for documentation on any of the below functions
+    local opts = { buffer = ev.buf }
+    vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
+    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+    vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
+    vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
+    vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, opts)
+    vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, opts)
+    vim.keymap.set('n', '<space>wl', function()
+      print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+    end, opts)
+    vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
+    vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
+    vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
+    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+    vim.keymap.set('n', '<space>f', function()
+      vim.lsp.buf.format { async = true }
+    end, opts)
+  end,
+})
 
 -- Load the file_browser extension
 require('telescope').load_extension('file_browser')
@@ -271,12 +324,12 @@ if vim.fn.has('termguicolors') == 1 then
 end
 
 -- ALE settings
-vim.g.ale_sign_error = '•'
-vim.g.ale_sign_warning = '•'
-vim.g.ale_sign_info = '·'
-vim.g.ale_sign_style_error = '·'
-vim.g.ale_sign_style_warning = '·'
-vim.g.ale_linters = { cs = { 'OmniSharp' } }
+-- vim.g.ale_sign_error = '•'
+-- vim.g.ale_sign_warning = '•'
+-- vim.g.ale_sign_info = '·'
+-- vim.g.ale_sign_style_error = '·'
+-- vim.g.ale_sign_style_warning = '·'
+-- vim.g.ale_linters = { cs = { 'OmniSharp' } }
 
 -- Asyncomplete settings
 vim.g.asyncomplete_auto_popup = 1
@@ -290,12 +343,6 @@ vim.api.nvim_set_keymap('i', '<CR>', 'pumvisible() ? asyncomplete#close_popup() 
 -- Sharpenup settings
 vim.g.sharpenup_map_prefix = '<Space>os'
 vim.g.sharpenup_statusline_opts = { Text = '%s (%p/%P)', Highlight = 0 }
-vim.cmd [[
-augroup OmniSharpIntegrations
-  autocmd!
-  autocmd User OmniSharpProjectUpdated,OmniSharpReady call lightline#update()
-augroup END
-]]
 
 -- Lightline settings
 vim.g.lightline = {
@@ -313,13 +360,13 @@ vim.g.lightline = {
   component = {
     sharpenup = vim.fn['sharpenup#statusline#Build']()
   },
-  component_expand = {
-    linter_checking = 'lightline#ale#checking',
-    linter_infos = 'lightline#ale#infos',
-    linter_warnings = 'lightline#ale#warnings',
-    linter_errors = 'lightline#ale#errors',
-    linter_ok = 'lightline#ale#ok'
-  },
+  -- component_expand = {
+    -- linter_checking = 'lightline#ale#checking',
+    -- linter_infos = 'lightline#ale#infos',
+    -- linter_warnings = 'lightline#ale#warnings',
+    -- linter_errors = 'lightline#ale#errors',
+    -- linter_ok = 'lightline#ale#ok'
+  -- },
   component_type = {
     linter_checking = 'right',
     linter_infos = 'right',
@@ -329,49 +376,11 @@ vim.g.lightline = {
   }
 }
 
-vim.g.lightline_ale_indicator_checking = '•'
-vim.g.lightline_ale_indicator_infos = '•'
-vim.g.lightline_ale_indicator_warnings = '·'
-vim.g.lightline_ale_indicator_errors = '·'
-vim.g.lightline_ale_indicator_ok = '·'
-
--- OmniSharp settings
-vim.g.OmniSharp_popup_position = 'peek'
-if vim.fn.has('nvim') == 1 then
-  vim.g.OmniSharp_popup_options = {
-    winblend = 30,
-    winhl = 'Normal:Normal,FloatBorder:ModeMsg',
-    border = 'rounded'
-  }
-else
-  vim.g.OmniSharp_popup_options = {
-    highlight = 'Normal',
-    padding = { 0 },
-    border = { 1 },
-    borderchars = { '─', '│', '─', '│', '╭', '╮', '╯', '╰' },
-    borderhighlight = { 'ModeMsg' }
-  }
-end
-vim.g.OmniSharp_popup_mappings = {
-  sigNext = '<C-n>',
-  sigPrev = '<C-p>',
-  pageDown = { '<C-f>', '<PageDown>' },
-  pageUp = { '<C-b>', '<PageUp>' }
-}
-if using_snippets then
-  vim.g.OmniSharp_want_snippet = 1
-end
-vim.g.OmniSharp_highlight_groups = { ExcludedCode = 'NonText' }
-
--- Tab that's not on a newline or whitespace will perform auto completion
--- vim.api.nvim_set_keymap('i', '<Tab>', 'pumvisible() ? "<C-n>" : (vim.fn.match(getline("."), "[[:alnum:].-_#$]", col(".") - 2) ~= -1 ? "<C-x><C-o>" : "<Tab>")', { expr = true })
-
--- Handy dandy remaps
-vim.api.nvim_set_keymap('n', '<C-o><C-u>', ':OmniSharpFindUsages<CR>', {})
-vim.api.nvim_set_keymap('n', '<C-o><C-d>', ':OmniSharpGoToDefinition<CR>', {})
-vim.api.nvim_set_keymap('n', '<C-o><C-p><C-d>', ':OmniSharpPreviewDefinition<CR>', {})
-vim.api.nvim_set_keymap('n', '<C-o><C-r>', ':!dotnet run<CR>', {})
-vim.api.nvim_set_keymap('n', '<C-o><C-t>', ':!dotnet test<CR>', {})
+-- vim.g.lightline_ale_indicator_checking = '•'
+-- vim.g.lightline_ale_indicator_infos = '•'
+-- vim.g.lightline_ale_indicator_warnings = '·'
+-- vim.g.lightline_ale_indicator_errors = '·'
+-- vim.g.lightline_ale_indicator_ok = '·'
 
 vim.api.nvim_set_keymap('n', '<Leader>fb', ':Telescope file_browser<CR>', { silent = true })
 vim.api.nvim_set_keymap('v', '<Leader>y', ':w !clip<CR><CR>', { silent = true })
